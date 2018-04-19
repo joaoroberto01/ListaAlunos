@@ -13,7 +13,7 @@ import java.net.URL;
 
 public class ServerConnection extends AsyncTask<String,Void,String>{
     public static final String HOST_STUDENTS = "sisacweb.com.br/ws/ws_lista_alunos.php";
-    public static final String HOST_IMG = "sisacweb.com.br/dist/img/fotos-alunos/";
+    public static final String HOST_IMG = "http://sisacweb.com.br/dist/img/fotos-alunos/";
 
     private static final int CONNECTION_TIME_OUT = 3000;
     private static final int READ_TIME_OUT = 3000;
