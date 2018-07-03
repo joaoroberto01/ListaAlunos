@@ -135,7 +135,7 @@ public class ServerConnection extends AsyncTask<String,Void,String>{
     @Override
     protected String doInBackground(String... params) {
         if(ConnectivityUtils.isNetworkConnected(context)){
-            if(params[0] != null)
+            if(params != null && params[0] != null)
                 return getDataWithPost(params[0]);
             else
                 return getDataWithPost("");

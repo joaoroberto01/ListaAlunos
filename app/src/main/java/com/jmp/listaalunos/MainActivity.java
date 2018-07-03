@@ -1,35 +1,35 @@
 package com.jmp.listaalunos;
 
 import android.content.Intent;
-import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ListView;
+import android.widget.Switch;
 
-import com.bumptech.glide.Glide;
 import com.jmp.listaalunos.adapters.CustomListAdapter;
 import com.jmp.listaalunos.utils.DialogUtils;
 import com.jmp.listaalunos.utils.OnConnectionCompletedListener;
-import com.jmp.listaalunos.utils.ServerConnection;
 
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
+import java.util.Random;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener, OnConnectionCompletedListener<Object>, AdapterView.OnItemClickListener {
+public class MainActivity extends AppCompatActivity implements View.OnClickListener, AdapterView.OnItemClickListener, CompoundButton.OnCheckedChangeListener {
     private EditText searchEditText;
     private ListView studentsListView;
-    private List<JSONObject> students;
+    private boolean pussyMode;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,73 +56,121 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         ImageButton clearImageButton = findViewById(R.id.ib_clear);
         clearImageButton.setOnClickListener(this);
 
-        new ServerConnection(this,this,ServerConnection.HOST_STUDENTS).execute("");
+        Switch swPussy = findViewById(R.id.sw_pussy);
+        swPussy.setOnCheckedChangeListener(this);
+        swPussy.setChecked(true);
+
+        filter(getJSON());
     }
 
     @Override
     public void onClick(View v) {
         if(v.getId() == R.id.ib_search) {
-            new ServerConnection(this, this, ServerConnection.HOST_STUDENTS).execute("");
+            filter(getJSON());
         }else if (v.getId() == R.id.ib_clear){
             searchEditText.setText("");
-            new ServerConnection(this,this,ServerConnection.HOST_STUDENTS).execute("");
+            filter(getJSON());
         }
     }
 
-    @Override
-    public void onConnectionCompleted(Object response) {
-        filter(response.toString());
-    }
-
     private void filter(String response) {
-        students = new ArrayList<>();
+        List<JSONObject> students = new ArrayList<>();
         List<String> studentNames = new ArrayList<>();
         try{
             JSONArray jsonArray = new JSONArray(response);
             for (int i = 0; i < jsonArray.length() ; i++) {
-                String search = searchEditText.getText().toString().toUpperCase();
+                String[] search = searchEditText.getText().toString().toUpperCase().split(" ");
                 JSONObject jsonObject = jsonArray.getJSONObject(i);
-                if(jsonObject.getString("nome_aluno").startsWith(search)){
-                    studentNames.add(jsonObject.getString("nome_aluno"));
-                    students.add(jsonObject);
+                String name = jsonObject.getString("nome_aluno");
+                if(search.length > 1) {
+                    if (name.contains(search[0]) && name.contains(search[1])) {
+                        studentNames.add(name);
+                        students.add(jsonObject);
+                    }
+                }else {
+                    if (name.contains(search[0])) {
+                        studentNames.add(name);
+                        students.add(jsonObject);
+                    }
+                }
+
+                if(pussyMode){
+                    if(!isPussy(jsonObject.getString("sexo_aluno"))){
+                        studentNames.remove(name);
+                        students.remove(jsonObject);
+                    }
                 }
             }
-            Collections.sort(studentNames);
-            Collections.sort(students, new Comparator<JSONObject>() {
-                private static final String KEY_NAME = "nome_aluno";
 
-                @Override
-                public int compare(JSONObject a, JSONObject b) {
-                    String valA = "";
-                    String valB = "";
+            LocalPersistence.saveStudents(this, students);
 
-                    try {
-                        valA = (String) a.get(KEY_NAME);
-                        valB = (String) b.get(KEY_NAME);
-                    }
-                    catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-
-                    return valA.compareTo(valB);
-                }
-            });
             studentsListView.setAdapter(new CustomListAdapter(this,studentNames));
-            getSupportActionBar().setTitle("Lista de Alunos ("+students.size()+")");
+            getSupportActionBar().setTitle("Lista de Alunos ("+ students.size()+")");
         }catch (Exception e){
             e.printStackTrace();
         }
+    }
+
+    private boolean isPussy(String gender) {
+        return gender.equals("F");
+    }
+
+    private void random(){
+        Intent intent = new Intent(this,PhotoActivity.class);
+
+        int position = new Random().nextInt(studentsListView.getAdapter().getCount());
+
+        intent.putExtra("position",position);
+        startActivity(intent);
     }
 
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-        try {
-            Intent intent = new Intent(this,PhotoActivity.class);
-            intent.putExtra("photo",students.get(position).getString("nome_foto_aluno"));
-            intent.putExtra("name",students.get(position).getString("nome_aluno"));
-            startActivity(intent);
-        }catch (Exception e){
-            e.printStackTrace();
-        }
+        Intent intent = new Intent(this,PhotoActivity.class);
+
+        intent.putExtra("position",position);
+        startActivity(intent);
     }
+
+    @Override
+    public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+        pussyMode = isChecked;
+        filter(getJSON());
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_main,menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if(item.getItemId() == R.id.random)
+            random();
+        return super.onOptionsItemSelected(item);
+    }
+
+    private String getJSON() {
+        String json;
+        try {
+            InputStream is = getAssets().open("alunos.json");
+
+            int size = is.available();
+
+            byte[] buffer = new byte[size];
+
+            is.read(buffer);
+
+            is.close();
+
+            json = new String(buffer, "UTF-8");
+        } catch (IOException e) {
+            e.printStackTrace();
+            return "";
+        }
+        return json;
+
+    }
+
 }
