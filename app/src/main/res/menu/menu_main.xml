@@ -2,6 +2,11 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
+        android:id="@+id/filter"
+        android:title="Filtrar"
+        android:icon="@drawable/ic_filter"
+        app:showAsAction="always" />
+    <item
         android:id="@+id/random"
         android:title="Aleatório"
         android:icon="@drawable/ic_random"

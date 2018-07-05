@@ -11,6 +11,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
@@ -56,7 +57,7 @@ public class PhotoActivity extends AppCompatActivity {
         setStudent(position);
     }
 
-    private void setStudent(int position){
+    private void setStudent(int position){ 
         if(position >= students.size()){
             this.position = 0;
             position = 0;
@@ -70,6 +71,12 @@ public class PhotoActivity extends AppCompatActivity {
         try {
             String name = student.getString("nome_aluno");
             getSupportActionBar().setTitle(name);
+
+            String course = student.getString("ano_aluno").replace("*","º");
+            course += " "+student.getString("curso_aluno");
+
+            ((TextView)findViewById(R.id.tv_name)).setText(name);
+            ((TextView)findViewById(R.id.tv_course)).setText(course);
 
             Context context = studentImageView.getContext();
             int id = context.getResources().getIdentifier(name.replace(" ", "_").toLowerCase(), "drawable", context.getPackageName());
